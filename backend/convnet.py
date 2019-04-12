@@ -19,25 +19,27 @@ class ConvNet(nn.Module):
 
     def forward(self, x):
         outs = []
+        outs.append(x)
         outs.append(F.relu(self.conv1(x)))
-        outs.append(F.max_pool2d(outs[0], 2, 2))
-        outs.append(F.relu(self.conv2(outs[1])))
-        outs.append(F.max_pool2d(outs[2], 2, 2))
-        t = outs[3].view(-1, 4*4*16)
+        outs.append(F.max_pool2d(outs[-1], 2, 2))
+        outs.append(F.relu(self.conv2(outs[-1])))
+        outs.append(F.max_pool2d(outs[-1], 2, 2))
+        t = outs[-1].view(-1, 4*4*16)
         outs.append(F.relu(self.fc1(t)))
-        outs.append(F.relu(self.fc2(outs[4])))
-        outs.append(F.log_softmax(self.fc3(outs[5]), dim=1))
+        outs.append(F.relu(self.fc2(outs[-1])))
+        outs.append(F.log_softmax(self.fc3(outs[-1]), dim=1))
         return outs
 
     def getMetaData(self):
         metadata = []
-        metadata.append({ 'type': 'conv2d', 'size': [1,6,24,24] })
-        metadata.append({ 'type': 'max_pool2d', 'size': [1,6,12,12] })
-        metadata.append({ 'type': 'conv2d', 'size': [1,16,8,8] })
-        metadata.append({ 'type': 'max_pool2d', 'size': [1,16,4,4] })
-        metadata.append({ 'type': 'linear', 'size': [1,120] })
-        metadata.append({ 'type': 'linear', 'size': [1,100] })
-        metadata.append({ 'type': 'linear', 'size': [1,10] })
+        metadata.append({ 'type': 'input2d', 'outputsize': [1,1,28,28] })
+        metadata.append({ 'type': 'conv2d', 'outputsize': [1,6,24,24], 'kernelsize': 5 })
+        metadata.append({ 'type': 'max_pool2d', 'outputsize': [1,6,12,12] })
+        metadata.append({ 'type': 'conv2d', 'outputsize': [1,16,8,8], 'kernelsize': 5 })
+        metadata.append({ 'type': 'max_pool2d', 'outputsize': [1,16,4,4] })
+        metadata.append({ 'type': 'linear', 'outputsize': [1,120] })
+        metadata.append({ 'type': 'linear', 'outputsize': [1,100] })
+        metadata.append({ 'type': 'linear', 'outputsize': [1,10] })
         return metadata
 
 def train(args, model, device, train_loader, optimizer, epoch):
