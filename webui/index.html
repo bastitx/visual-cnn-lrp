@@ -10,10 +10,13 @@
 
 		<script src="js/three.min.js"></script>
 		<script src="js/jquery-1.11.2.min.js"></script>
+		<script src="js/math.min.js"></script>
 
 		<script src="js/drawingboard.min.js"></script>
 
 		<script src="js/createText_func.js"></script>
+		<script src="js/controls/myOrbitControls.js"></script>
+		<script src="js/colormaps/myColorMap_dark.js"></script>
 
 	</head>
 	<body>
@@ -26,6 +29,12 @@
 				<div class="board" id="custom-board"></div>
 				<div class="drawingOutput">
 					<div class="row">
+						<div class="row">
+							<div class="info">Downsampled drawing:</div>
+							<div class="tinyBoard">
+								<canvas id="tiny"></canvas>
+							</div>
+						</div>
 						<div class="info cell">First guess:</div>
 						<div id="ans1" class="ans cell"></div>
 					</div>
