@@ -4,6 +4,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import lrp_module
 import torch.optim as optim
 from torchvision import datasets, transforms
 
@@ -11,24 +12,53 @@ from torchvision import datasets, transforms
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, 5, 1)
-        self.conv2 = nn.Conv2d(6, 16, 5, 1)
-        self.fc1 = nn.Linear(4*4*16, 120)
-        self.fc2 = nn.Linear(120, 100)
-        self.fc3 = nn.Linear(100, 10)
+        self.conv1 = lrp_module.Conv2d(1, 6, 5)
+        self.conv1.register_forward_hook(forward_hook)
+        self.conv2 = lrp_module.Conv2d(6, 16, 5)
+        self.conv2.register_forward_hook(forward_hook)
+        self.fc1 = lrp_module.Linear(4*4*16, 120)
+        self.fc1.register_forward_hook(forward_hook)
+        self.fc2 = lrp_module.Linear(120, 100)
+        self.fc2.register_forward_hook(forward_hook)
+        self.fc3 = lrp_module.Linear(100, 10)
+        self.fc3.register_forward_hook(forward_hook)
+        self.relu = lrp_module.ReLU()
+        self.relu.register_forward_hook(forward_hook)
+        self.reshape = lrp_module.Reshape(4, 4, 16)
+        self.reshape.register_forward_hook(forward_hook)
+        self.max_pool2d_1 = lrp_module.MaxPool2d(2, 2)
+        self.max_pool2d_1.register_forward_hook(forward_hook)
+        self.max_pool2d_2 = lrp_module.MaxPool2d(2, 2)
+        self.max_pool2d_2.register_forward_hook(forward_hook)
+        self.outs = []
+
 
     def forward(self, x):
-        outs = []
-        outs.append(x)
-        outs.append(F.relu(self.conv1(x)))
-        outs.append(F.max_pool2d(outs[-1], 2, 2))
-        outs.append(F.relu(self.conv2(outs[-1])))
-        outs.append(F.max_pool2d(outs[-1], 2, 2))
-        t = outs[-1].view(-1, 4*4*16)
-        outs.append(F.relu(self.fc1(t)))
-        outs.append(F.relu(self.fc2(outs[-1])))
-        outs.append(F.log_softmax(self.fc3(outs[-1]), dim=1))
-        return outs
+        self.outs = []
+        self.outs.append(x)
+        self.outs.append(self.relu(self.conv1(x)))
+        self.outs.append(self.max_pool2d_1(self.outs[-1]))
+        self.outs.append(self.relu(self.conv2(self.outs[-1])))
+        self.outs.append(self.max_pool2d_2(self.outs[-1]))
+        t = self.reshape(self.outs[-1])
+        self.outs.append(self.relu(self.fc1(t)))
+        self.outs.append(self.relu(self.fc2(self.outs[-1])))
+        self.outs.append(self.fc3(self.outs[-1]))
+        return self.outs[-1]
+
+    def relprop(self, R):
+        self.outs = []
+        self.outs.append(R)
+        self.outs.append(self.fc3.relprop(self.outs[-1]))
+        self.outs.append(self.fc2.relprop(self.relu.relprop(self.outs[-1])))
+        self.outs.append(self.fc1.relprop(self.relu.relprop(self.outs[-1])))
+        t = self.reshape.relprop(self.outs[-1])
+        self.outs.append(self.max_pool2d_2.relprop(t))
+        self.outs.append(self.conv2.relprop(self.relu.relprop(self.outs[-1])))
+        self.outs.append(self.max_pool2d_1.relprop(self.outs[-1]))
+        self.outs.append(self.conv1.relprop(self.relu.relprop(self.outs[-1])))
+        self.outs.reverse()
+        return self.outs[0]
 
     def getMetaData(self):
         metadata = []
@@ -41,6 +71,10 @@ class ConvNet(nn.Module):
         metadata.append({ 'type': 'linear', 'outputsize': [1,100] })
         metadata.append({ 'type': 'linear', 'outputsize': [1,10] })
         return metadata
+
+def forward_hook(self, input, output):
+    self.X = input[0]
+    self.Y = output
 
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
