@@ -51,7 +51,7 @@ function onStopDrawing() {
   input = math.reshape(input, [1,1,28,28])
   $.ajax({
     type: 'post',
-    url: 'http://127.0.0.1:5000/getActivations',
+    url: 'http://127.0.0.1:5000/getHeatmap',
     contentType: 'application/json',
     data: JSON.stringify(input),
     success: function(data) {
@@ -88,11 +88,27 @@ function onWindowResize( e ) {
 
 function updateCubes(data) {
   data_ = data.flat(4)
+  layer_indices = [0]
+  rmin = -0.1
+  rmax = 0.1
+  for(i=0; i<nnMetaData.length; i++) {
+    layer_indices = layer_indices.concat(layer_indices[i] + nnMetaData[i].outputsize.reduce((x, y) => x*y))
+  }
   for(i=0; i<data_.length; i++) {
-    var colorNum = math.round(data_[i]*99);
-		r = redLookup[colorNum];
-		g = greenLookup[colorNum];
-		b = blueLookup[colorNum];
+    if(layer_indices.indexOf(i) >= 0) {
+      layer_values = data_.slice(i, layer_indices[layer_indices.indexOf(i)+1])
+      rmin = math.min(layer_values)
+      rmax = math.max(layer_values)
+    }
+    //var colorNum = math.round(data_[i]*99);
+		r = 0//redLookup[colorNum];
+		g = 0//greenLookup[colorNum];
+		b = 0//blueLookup[colorNum];
+    if(data_[i] < 0) {
+      r = data_[i] / rmin
+    } else if(data_[i] > 0){
+      g = data_[i] / rmax
+    }
     var color = new THREE.Color(r, g, b)
     for(j=0; j<12; j++) {
       for(k=0; k<3; k++) {
