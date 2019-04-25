@@ -2,6 +2,7 @@
 var customBoard, tinyCtx
 var renderer, camera, scene
 var nnMetaData
+var heatmap_hide = false
 
 function init() {
   customBoard = new DrawingBoard.Board('custom-board', {
@@ -36,6 +37,11 @@ function init() {
       drawCubes()
       customBoard.ev.bind('board:stopDrawing', onStopDrawing);
   });
+
+  $('#heatmap_hide_button').click(function() {
+					heatmap_hide = !heatmap_hide;
+          onStopDrawing()
+	});
 }
 
 function onStopDrawing() {
@@ -49,9 +55,11 @@ function onStopDrawing() {
     input[i] = imageDataScaled[i*4]/255
   }
   input = math.reshape(input, [1,1,28,28])
+  url = 'http://127.0.0.1:5000/'
+  url += heatmap_hide ? 'getActivations' : 'getHeatmap'
   $.ajax({
     type: 'post',
-    url: 'http://127.0.0.1:5000/getHeatmap',
+    url: url,
     contentType: 'application/json',
     data: JSON.stringify(input),
     success: function(data) {
