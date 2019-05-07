@@ -12,53 +12,50 @@ from torchvision import datasets, transforms
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
-        self.conv1 = lrp_module.Conv2d(1, 6, 5)
-        self.conv1.register_forward_hook(forward_hook)
-        self.conv2 = lrp_module.Conv2d(6, 16, 5)
-        self.conv2.register_forward_hook(forward_hook)
-        self.fc1 = lrp_module.Linear(4*4*16, 120)
-        self.fc1.register_forward_hook(forward_hook)
-        self.fc2 = lrp_module.Linear(120, 100)
-        self.fc2.register_forward_hook(forward_hook)
-        self.fc3 = lrp_module.Linear(100, 10)
-        self.fc3.register_forward_hook(forward_hook)
-        self.relu = lrp_module.ReLU()
-        self.relu.register_forward_hook(forward_hook)
-        self.reshape = lrp_module.Reshape(4, 4, 16)
-        self.reshape.register_forward_hook(forward_hook)
-        self.max_pool2d_1 = lrp_module.MaxPool2d(2, 2)
-        self.max_pool2d_1.register_forward_hook(forward_hook)
-        self.max_pool2d_2 = lrp_module.MaxPool2d(2, 2)
-        self.max_pool2d_2.register_forward_hook(forward_hook)
-        self.outs = []
-
+        self.layers = nn.Sequential(
+            lrp_module.Conv2d(1, 6, 5),
+            lrp_module.ReLU(),
+            lrp_module.MaxPool2d(2, 2),
+            lrp_module.Conv2d(6, 16, 5),
+            lrp_module.ReLU(),
+            lrp_module.MaxPool2d(2, 2),
+            lrp_module.Reshape(4, 4, 16),
+            lrp_module.Linear(4*4*16, 120),
+            lrp_module.ReLU(),
+            lrp_module.Linear(120, 100),
+            lrp_module.ReLU(),
+            lrp_module.Linear(100, 10)
+        )
+        for layer in self.layers:
+            layer.register_forward_hook(forward_hook)
+        self.relevances = []
 
     def forward(self, x):
-        self.outs = []
-        self.outs.append(x)
-        self.outs.append(self.relu(self.conv1(x)))
-        self.outs.append(self.max_pool2d_1(self.outs[-1]))
-        self.outs.append(self.relu(self.conv2(self.outs[-1])))
-        self.outs.append(self.max_pool2d_2(self.outs[-1]))
-        t = self.reshape(self.outs[-1])
-        self.outs.append(self.relu(self.fc1(t)))
-        self.outs.append(self.relu(self.fc2(self.outs[-1])))
-        self.outs.append(self.fc3(self.outs[-1]))
-        return self.outs[-1]
+        y = F.log_softmax(self.layers(x), dim=1)
+        return y
 
     def relprop(self, R):
-        self.outs = []
-        self.outs.append(R)
-        self.outs.append(self.fc3.relprop(self.outs[-1]))
-        self.outs.append(self.fc2.relprop(self.relu.relprop(self.outs[-1])))
-        self.outs.append(self.fc1.relprop(self.relu.relprop(self.outs[-1])))
-        t = self.reshape.relprop(self.outs[-1])
-        self.outs.append(self.max_pool2d_2.relprop(t))
-        self.outs.append(self.conv2.relprop(self.relu.relprop(self.outs[-1])))
-        self.outs.append(self.max_pool2d_1.relprop(self.outs[-1]))
-        self.outs.append(self.conv1.relprop(self.relu.relprop(self.outs[-1])))
-        self.outs.reverse()
-        return self.outs[0]
+        self.relevances = [R]
+        for l in range(len(self.layers), 0, -1):
+            self.relevances.append(self.layers[l-1].relprop(self.relevances[-1]))
+        self.relevances.reverse()
+        return self.relevances[0]
+
+    def getActivations(self, layers=None):
+        x = [self.layers[0].X]
+        if layers == None:
+            layers = range(len(self.layers))
+        for l in layers:
+            x.append(self.layers[l].Y)
+        return x
+
+    def getRelevances(self, layers=None):
+        x = [self.relevances[0]]
+        if layers == None:
+            layers = range(len(self.layers))
+        for l in layers:
+            x.append(self.relevances[l+1])
+        return x
 
     def getMetaData(self):
         metadata = []

@@ -69,3 +69,9 @@ class Conv2d(nn.Conv2d):
         C = self.gradprop(S)
         R = self.X * C
         return R
+
+class Softmax(nn.Softmax):
+    def __init__(self):
+        super().__init__()
+    def relprop(self, R):
+        return R
