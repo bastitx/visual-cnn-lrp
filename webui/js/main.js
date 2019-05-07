@@ -55,13 +55,19 @@ function onStopDrawing() {
     input[i] = imageDataScaled[i*4]/255
   }
   input = math.reshape(input, [1,1,28,28])
+  heatmap_selector = parseInt($('#ans3')[0].value)
+  heatmap_selector = 0 <= heatmap_selector < 10 ? heatmap_selector : -1
+  input_data = {
+    data: input,
+    heatmap_selection: heatmap_selector
+  }
   url = 'http://127.0.0.1:5000/'
-  url += heatmap_hide ? 'getActivations' : 'getHeatmap'
+  url += heatmap_hide ? 'activations' : 'lrpsimple'
   $.ajax({
     type: 'post',
     url: url,
     contentType: 'application/json',
-    data: JSON.stringify(input),
+    data: JSON.stringify(input_data),
     success: function(data) {
       updateCubes(data)
       output = JSON.parse(JSON.stringify(data[data.length-1][0]))
@@ -97,27 +103,26 @@ function onWindowResize( e ) {
 function updateCubes(data) {
   data_ = data.flat(4)
   layer_indices = [0]
-  rmin = -0.1
-  rmax = 0.1
+  rmin = math.min(data_)
+  //if(rmin > -0.001) rmin = -0.001
+  rmax = math.max(data_)
+  //if(rmax < 0.001) rmax = 0.001
+  //quantiles = math.quantileSeq(data_, [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
   for(i=0; i<nnMetaData.length; i++) {
     layer_indices = layer_indices.concat(layer_indices[i] + nnMetaData[i].outputsize.reduce((x, y) => x*y))
   }
+  color_scale = chroma.scale(['red', 'black', 'green'])
+  //color_scale_ = color_scale.domain([rmin, 0, rmax])
   for(i=0; i<data_.length; i++) {
     if(layer_indices.indexOf(i) >= 0) {
       layer_values = data_.slice(i, layer_indices[layer_indices.indexOf(i)+1])
       rmin = math.min(layer_values)
+      if(rmin > -0.001) rmin = -0.001
       rmax = math.max(layer_values)
+      if(rmax < 0.001) rmax = 0.001
+      color_scale_ = color_scale.domain([rmin, 0, rmax])
     }
-    //var colorNum = math.round(data_[i]*99);
-		r = 0//redLookup[colorNum];
-		g = 0//greenLookup[colorNum];
-		b = 0//blueLookup[colorNum];
-    if(data_[i] < 0) {
-      r = data_[i] / rmin
-    } else if(data_[i] > 0){
-      g = data_[i] / rmax
-    }
-    var color = new THREE.Color(r, g, b)
+    var color = new THREE.Color(color_scale_(data_[i]).num())
     for(j=0; j<12; j++) {
       for(k=0; k<3; k++) {
         scene.children[0].geometry.faces[i*12+j].vertexColors[k] = color
