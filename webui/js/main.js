@@ -102,23 +102,15 @@ function onWindowResize( e ) {
 
 function updateCubes(data) {
   data_ = data.flat(4)
-  //layer_indices = [0]
   color_scale = chroma.scale('RdBu')
-  quantiles = math.quantileSeq([...new Set(data_)], color_scale.colors().length)
-  /*for(i=0; i<nnMetaData.length; i++) {
-    layer_indices = layer_indices.concat(layer_indices[i] + nnMetaData[i].outputsize.reduce((x, y) => x*y))
-  }*/
-
-  color_scale_ = color_scale.domain(quantiles)
+  distinct_data = [...new Set(data_)]
+  distinct_data_n = distinct_data.filter((x) => x <= 0)
+  distinct_data_p = distinct_data.filter((x) => x >= 0)
+  //quantiles = math.quantileSeq([...new Set(data_)], color_scale.colors().length)
+  quantiles_n = math.quantileSeq(distinct_data_n, 6).slice(0, 5)
+  quantiles_p = math.quantileSeq(distinct_data_p, 6).slice(1, 6)
+  color_scale_ = color_scale.domain([quantiles_n, 0, quantiles_p].flat())
   for(i=0; i<data_.length; i++) {
-    /*if(layer_indices.indexOf(i) >= 0) {
-      layer_values = data_.slice(i, layer_indices[layer_indices.indexOf(i)+1])
-      rmin = math.min(layer_values)
-      if(rmin > -0.001) rmin = -0.001
-      rmax = math.max(layer_values)
-      if(rmax < 0.001) rmax = 0.001
-      color_scale_ = color_scale.domain([rmin, 0, rmax])
-    }*/
     var color = new THREE.Color(color_scale_(data_[i]).num())
     for(j=0; j<12; j++) {
       for(k=0; k<3; k++) {
