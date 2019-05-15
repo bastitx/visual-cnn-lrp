@@ -4,10 +4,9 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import lrp_module
 import torch.optim as optim
 from torchvision import datasets, transforms
-
+import modules as lrp_module
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -34,10 +33,13 @@ class ConvNet(nn.Module):
         y = F.log_softmax(self.layers(x), dim=1)
         return y
 
-    def relprop(self, R):
+    def relprop(self, R, kind='simple'):
         self.relevances = [R]
         for l in range(len(self.layers), 0, -1):
-            self.relevances.append(self.layers[l-1].relprop(self.relevances[-1]))
+            if kind == 'alphabeta':
+                self.relevances.append(self.layers[l-1].abrelprop(self.relevances[-1], 2))
+            else:
+                self.relevances.append(self.layers[l-1].relprop(self.relevances[-1]))
         self.relevances.reverse()
         return self.relevances[0]
 

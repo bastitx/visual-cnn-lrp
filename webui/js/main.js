@@ -1,7 +1,7 @@
 //Global Variables
 var customBoard, tinyCtx
 var renderer, camera, scene
-var nnMetaData
+var nnMetaData, nnOutput
 var heatmap_hide = false
 
 function init() {
@@ -62,15 +62,16 @@ function onStopDrawing() {
     heatmap_selection: heatmap_selector
   }
   url = 'http://127.0.0.1:5000/'
-  url += heatmap_hide ? 'activations' : 'lrpsimple'
+  url += heatmap_hide ? 'activations' : 'lrp/alphabeta'
   $.ajax({
     type: 'post',
     url: url,
     contentType: 'application/json',
     data: JSON.stringify(input_data),
     success: function(data) {
+      nnOutput = data
       updateCubes(data)
-      output = JSON.parse(JSON.stringify(data[data.length-1][0]))
+      var output = JSON.parse(JSON.stringify(data[data.length-1][0]))
       ans1 = argMax(output)
       output[ans1] = -9999999999
       ans2 = argMax(output)
