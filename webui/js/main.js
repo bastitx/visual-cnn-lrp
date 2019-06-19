@@ -3,6 +3,7 @@ var customBoard, tinyCtx
 var renderer, camera, scene
 var nnMetaData, nnOutput
 var heatmap_hide = false
+SERVER="127.0.0.1:5000"
 
 function init() {
   customBoard = new DrawingBoard.Board('custom-board', {
@@ -32,7 +33,7 @@ function init() {
 
   var controls = new THREE.OrbitControls( camera, renderer.domElement );
   window.addEventListener( 'resize', onWindowResize, false );
-  $.get("http://127.0.0.1:5000/metaData").done(function(result) {
+  $.get("http://"+SERVER+"/metaData").done(function(result) {
       nnMetaData = result
       drawCubes()
       customBoard.ev.bind('board:stopDrawing', onStopDrawing);
@@ -61,7 +62,7 @@ function onStopDrawing() {
     data: input,
     heatmap_selection: heatmap_selector
   }
-  url = 'http://127.0.0.1:5000/'
+  url = 'http://'+SERVER+'/'
   url += heatmap_hide ? 'activations' : 'lrp/alphabeta'
   $.ajax({
     type: 'post',
