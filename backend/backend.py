@@ -27,8 +27,8 @@ def getActivations():
         new_output.append(out.tolist())
     return jsonify(new_output)
 
-@app.route("/lrp/<kind>", methods=['POST'])
-def getHeatmap(kind):
+@app.route("/lrp/<type>", methods=['POST'])
+def getHeatmap(type):
     data = request.json
     input_data = data['data']
     heatmap_selection = data['heatmap_selection']
@@ -40,7 +40,7 @@ def getHeatmap(kind):
     else:
         output_[output.argmax()] = 1
     output_ = output_[None,:]
-    model.relprop(output_, kind)
+    model.relprop(output_, type)
     new_output = []
     for out in model.getRelevances(outputLayers):
         new_output.append(out.tolist())

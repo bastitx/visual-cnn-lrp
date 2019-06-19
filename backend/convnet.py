@@ -33,13 +33,17 @@ class ConvNet(nn.Module):
         y = F.log_softmax(self.layers(x), dim=1)
         return y
 
-    def relprop(self, R, kind='simple'):
+    def relprop(self, R, kind='simple', param=None):
         self.relevances = [R]
         for l in range(len(self.layers), 0, -1):
             if kind == 'alphabeta':
-                self.relevances.append(self.layers[l-1].abrelprop(self.relevances[-1], 2))
+                if param == None:
+                    param=2
+                self.relevances.append(self.layers[l-1].abrelprop(self.relevances[-1], param))
             else:
-                self.relevances.append(self.layers[l-1].relprop(self.relevances[-1]))
+                if param == None:
+                    param=0.01
+                self.relevances.append(self.layers[l-1].relprop(self.relevances[-1], 1e-9))
         self.relevances.reverse()
         return self.relevances[0]
 
