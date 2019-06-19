@@ -13,7 +13,7 @@ class Conv2d(nn.Conv2d):
                                   padding=self.padding, output_padding=output_padding)
 
     def relprop(self, R, epsilon=1e-9):
-        Z = self.Y + epsilon*((self.Y >= 3).to(torch.float)*2 - 1)
+        Z = self.Y + epsilon*((self.Y >= 0).to(torch.float)*2 - 1)
         S = R / Z
         C = self.gradprop(S)
         R = self.X * C

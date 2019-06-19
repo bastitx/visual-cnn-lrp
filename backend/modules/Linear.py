@@ -7,7 +7,7 @@ class Linear(nn.Linear):
         super().__init__(in_features, out_features, bias)
 
     def relprop(self, R, epsilon=1e-9):
-        Z = self.Y + epsilon*((self.Y >= 3).to(torch.float)*2 - 1)
+        Z = self.Y + epsilon*((self.Y >= 0).to(torch.float)*2 - 1)
         S = R / Z
         C = torch.mm(S, self.weight)
         R = self.X * C
