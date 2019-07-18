@@ -42,8 +42,8 @@ class ConvNet(nn.Module):
                 self.relevances.append(self.layers[l-1].abrelprop(self.relevances[-1], param))
             else:
                 if param == None:
-                    param=0.01
-                self.relevances.append(self.layers[l-1].relprop(self.relevances[-1], 1e-9))
+                    param=1
+                self.relevances.append(self.layers[l-1].relprop(self.relevances[-1], param))
         self.relevances.reverse()
         return self.relevances[0]
 
