@@ -42,6 +42,7 @@ class Sequential(Module):
         '''
         Module.__init__(self)
         self.modules = modules
+        self.relevances = []
 
     def to_cupy(self):
         for m in self.modules:
@@ -350,7 +351,9 @@ class Sequential(Module):
         for which the explanation is to be computed. calling clean in between forward and lrp invalidates the
         temporary data
         '''
-
+        self.relevances = [R]
         for m in self.modules[::-1]:
             R = m.lrp(R,lrp_var,param)
+            self.relevances.append(R)
+        self.relevances.reverse()
         return R
