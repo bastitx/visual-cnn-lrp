@@ -3,9 +3,15 @@ var customBoard, tinyCtx
 var renderer, camera, scene
 var nnMetaData, nnOutput
 var heatmap_hide = false
-SERVER="127.0.0.1:5000"
+SERVER="http://127.0.0.1:5000" // where backend API is located
 
+
+/*
+Called when webpage is initialized
+*/
 function init() {
+  //Initialize Drawing Board
+  //See https://github.com/Leimi/drawingboard.js/ for documentation
   customBoard = new DrawingBoard.Board('custom-board', {
     background: "#000",
     color: "#fff",
@@ -18,10 +24,12 @@ function init() {
     webStorage: 'session',
     droppable: false
   });
-
+  //initialize scaled down version of drawing, which is input of neural network
   tinyCtx = $("#tiny")[0].getContext("2d");
   tinyCtx.scale(0.1,0.1);
 
+  // Initialize 3D scene
+  // See documentation https://threejs.org/docs
   scene = new THREE.Scene();
   var aspect = window.innerWidth / window.innerHeight;
   camera = new THREE.OrthographicCamera( -680*aspect, 680*aspect, 600, -760, -100, 50 );
@@ -33,37 +41,48 @@ function init() {
 
   var controls = new THREE.OrbitControls( camera, renderer.domElement );
   window.addEventListener( 'resize', onWindowResize, false );
-  $.get("http://"+SERVER+"/metaData").done(function(result) {
+
+  // Initialize the "cubes"(in 2d just squares)
+  // These are the building blocks of the visualization of the neural network
+  // Each cube represents a neuron
+  // Metadata of neural network is pulled from backend
+  $.get(SERVER+"/metaData").done(function(result) {
       nnMetaData = result
       drawCubes()
       customBoard.ev.bind('board:stopDrawing', onStopDrawing);
   });
-
+  // Initialize the heatmap hide button, which switches between showing
+  // activations and heatmap
   $('#heatmap_hide_button').click(function() {
 					heatmap_hide = !heatmap_hide;
           onStopDrawing()
 	});
 }
 
+// Function that's called right after someone has just stopped drawing in the
+// DrawingBoard. This will send the drawn image to the neural network
 function onStopDrawing() {
+  // Get the content of the image, scale it down, and store it in tinyCtx
   var imageData = customBoard.canvas.getContext("2d").getImageData(0,0,280,280)
   var newCanvas = $("<canvas>").attr("width", imageData.width).attr("height", imageData.height)[0];
   newCanvas.getContext("2d").putImageData(imageData, 0, 0);
   tinyCtx.drawImage(newCanvas, 0, 0);
-  imageDataScaled = tinyCtx.getImageData(0,0,28,28).data
+  imageDataScaled = tinyCtx.getImageData(0,0,28,28).data //get RGBA array of image
+  //Save alpha value of RGBA image and scale it from [0, 255] to [0, 1]
   var input = new Array(28*28)
   for(i=0; i<input.length; i++) {
     input[i] = imageDataScaled[i*4]/255
   }
   input = math.reshape(input, [1,1,28,28])
+  //Parse heatmap selector, which can override the
   heatmap_selector = parseInt($('#ans3')[0].value)
   heatmap_selector = 0 <= heatmap_selector < 10 ? heatmap_selector : -1
   input_data = {
     data: input,
     heatmap_selection: heatmap_selector
   }
-  url = 'http://'+SERVER+'/'
-  url += heatmap_hide ? 'activations' : 'lrp/alphabeta'
+  url = SERVER+'/'
+  url += heatmap_hide ? 'activations' : 'lrp/epsilon'
   $.ajax({
     type: 'post',
     url: url,
