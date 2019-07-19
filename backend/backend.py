@@ -8,7 +8,7 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-CONVNET = "lrptoolbox" #TODO: Make this better
+CONVNET = "old" #TODO: Make this better
 if CONVNET == "lrptoolbox":
     from convnet_tb import ConvNet
     import pickle
@@ -57,8 +57,8 @@ def getActivations():
             new_output.append(out.tolist())
     return jsonify(new_output)
 
-@app.route("/lrp/<type>", methods=['POST'])
-def getHeatmap(type):
+@app.route("/lrp/<kind>", methods=['POST'])
+def getHeatmap(kind):
     data = request.json
     input_data = data['data']
     heatmap_selection = data['heatmap_selection']
@@ -74,9 +74,9 @@ def getHeatmap(type):
         output_[output.argmax()] = 1
     output_ = output_[None,:]
     if CONVNET == "lrptoolbox":
-        model.lrp(np.array(output_), type, 0.1)
+        model.lrp(np.array(output_), kind, 0.01)
     else:
-        model.relprop(output_, type)
+        model.relprop(output_, kind, 0.01)
     new_output = []
     for out in model.getRelevances(outputLayers):
         if CONVNET == "lrptoolbox" and len(out.shape) == 4:
