@@ -3,6 +3,7 @@ var customBoard, tinyCtx
 var renderer, camera, scene
 var nnMetaData, nnOutput
 var heatmap_hide = false
+imagesize = 28 //TODO make this configurable
 SERVER="http://127.0.0.1:5000" // where backend API is located
 
 
@@ -63,17 +64,20 @@ function init() {
 // DrawingBoard. This will send the drawn image to the neural network
 function onStopDrawing() {
   // Get the content of the image, scale it down, and store it in tinyCtx
-  var imageData = customBoard.canvas.getContext("2d").getImageData(0,0,280,280)
+  var imageData = customBoard.canvas.getContext("2d").getImageData(0,0,imagesize*10,imagesize*10)
   var newCanvas = $("<canvas>").attr("width", imageData.width).attr("height", imageData.height)[0];
   newCanvas.getContext("2d").putImageData(imageData, 0, 0);
   tinyCtx.drawImage(newCanvas, 0, 0);
-  imageDataScaled = tinyCtx.getImageData(0,0,28,28).data //get RGBA array of image
+  imageDataScaled = tinyCtx.getImageData(0,0,imagesize,imagesize).data //get RGBA array of image
   //Save alpha value of RGBA image and scale it from [0, 255] to [0, 1]
-  var input = new Array(28*28)
+  var input = new Array(imagesize*imagesize)
   for(i=0; i<input.length; i++) {
-    input[i] = imageDataScaled[i*4]/255
+    //input[i] = imageDataScaled[i*4]/255
+
+    //Scale to [-1,1]
+    input[i] = imageDataScaled[i*4]/127.5-1 //TODO make this configurable
   }
-  input = math.reshape(input, [1,1,28,28])
+  input = math.reshape(input, [1,1,imagesize,imagesize])
   //Parse heatmap selector, which can override the
   heatmap_selector = parseInt($('#ans3')[0].value)
   heatmap_selector = 0 <= heatmap_selector < 10 ? heatmap_selector : -1
@@ -91,7 +95,7 @@ function onStopDrawing() {
     success: function(data) {
       nnOutput = data
       updateCubes(data)
-      var output = JSON.parse(JSON.stringify(data[data.length-1][0]))
+      var output = JSON.parse(JSON.stringify(data[data.length-1][0].flat(2)))
       ans1 = argMax(output)
       output[ans1] = -9999999999
       ans2 = argMax(output)

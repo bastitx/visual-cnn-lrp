@@ -48,31 +48,35 @@ class ConvNet(nn.Module):
         return self.relevances[0]
 
     def getActivations(self, layers=None):
-        x = [self.layers[0].X]
+        x = []
         if layers == None:
             layers = range(len(self.layers))
         for l in layers:
-            x.append(self.layers[l].Y)
+            if l == 0:
+                x.append(self.layers[0].X)
+            else:
+                x.append(self.layers[l-1].Y)
         return x
 
     def getRelevances(self, layers=None):
-        x = [self.relevances[0]]
+        x = []
         if layers == None:
             layers = range(len(self.layers))
         for l in layers:
-            x.append(self.relevances[l+1])
+            x.append(self.relevances[l])
         return x
 
-    def getMetaData(self):
+    def getMetaData(self, X):
         metadata = []
-        metadata.append({ 'type': 'input2d', 'outputsize': [1,1,28,28] })
-        metadata.append({ 'type': 'conv2d', 'outputsize': [1,6,24,24], 'kernelsize': 5 })
-        metadata.append({ 'type': 'max_pool2d', 'outputsize': [1,6,12,12] })
-        metadata.append({ 'type': 'conv2d', 'outputsize': [1,16,8,8], 'kernelsize': 5 })
-        metadata.append({ 'type': 'max_pool2d', 'outputsize': [1,16,4,4] })
-        metadata.append({ 'type': 'linear', 'outputsize': [1,120] })
-        metadata.append({ 'type': 'linear', 'outputsize': [1,100] })
-        metadata.append({ 'type': 'linear', 'outputsize': [1,10] })
+        metadata.append({ 'type': 'input2d', 'outputsize': X.size() })
+        for l in range(len(self.layers)):
+            obj = {}
+            X = self.layers[l].forward(X)
+            obj['type'] = self.layers[l].__class__.__name__
+            obj['outputsize'] = X.size()
+            if obj['type'] == "Conv2d":
+                obj['kernelsize'] = self.layers[l].kernel_size
+            metadata.append(obj)
         return metadata
 
 def forward_hook(self, input, output):

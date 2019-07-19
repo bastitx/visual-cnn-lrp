@@ -1,30 +1,60 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import sys
 import torch
-import torch.nn.functional as F
-from convnet import ConvNet
+import numpy as np
+
 
 app = Flask(__name__)
 CORS(app)
 
-model = ConvNet()
-model.load_state_dict(torch.load("mnist_cnn.pt"))
-model.eval()
-outputLayers = [1, 2, 4, 5, 8, 10, 11]
+CONVNET = "lrptoolbox" #TODO: Make this better
+if CONVNET == "lrptoolbox":
+    from convnet_tb import ConvNet
+    import pickle
+    import modules_tb
+    sys.modules['modules'] = modules_tb
+    with open("LeNet-5.nn", 'rb') as f:
+    #with open('long-tanh.nn', 'rb') as f:
+        model = pickle.load(f, encoding='latin1')
+    model.drop_softmax_output_layer()
+    model = ConvNet(model)
+else:
+    import torch.nn.functional as F
+    from convnet import ConvNet
+    model = ConvNet()
+    model.load_state_dict(torch.load("mnist_cnn.pt"))
+    model.eval()
+
+if CONVNET == "lrptoolbox":
+    outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
+else:
+    outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
 
 @app.route("/metaData", methods=['GET'])
 def metaData():
-    return jsonify(model.getMetaData())
+    if CONVNET == "lrptoolbox":
+        metadata = model.getMetaData(torch.zeros(1,32,32,1))
+    else:
+        metadata = model.getMetaData(torch.zeros(1,1,28,28))
+    print(len(metadata))
+    return jsonify([metadata[i] for i in outputLayers])
 
 @app.route("/activations", methods=['POST'])
 def getActivations():
     data = request.json
     input_data = data['data']
     input = torch.Tensor(input_data)
-    model(input)
+    if CONVNET == "lrptoolbox":
+        model.forward(input.permute(0,3,2,1))
+    else:
+        model(input)
     new_output = []
     for out in model.getActivations(outputLayers):
-        new_output.append(out.tolist())
+        if CONVNET == "lrptoolbox" and len(out.shape) == 4:
+            new_output.append(np.swapaxes(out, 1, 3).tolist())
+        else:
+            new_output.append(out.tolist())
     return jsonify(new_output)
 
 @app.route("/lrp/<type>", methods=['POST'])
@@ -33,15 +63,24 @@ def getHeatmap(type):
     input_data = data['data']
     heatmap_selection = data['heatmap_selection']
     input = torch.Tensor(input_data)
-    output = model(input)
+    if CONVNET == "lrptoolbox":
+        output = model.forward(np.array(input.permute(0, 3, 2, 1)))
+    else:
+        output = model(input)
     output_ = torch.zeros(10)
     if heatmap_selection != None and -1 < heatmap_selection < 10:
         output_[heatmap_selection] = 1
     else:
         output_[output.argmax()] = 1
     output_ = output_[None,:]
-    model.relprop(output_, type)
+    if CONVNET == "lrptoolbox":
+        model.lrp(np.array(output_), type, 0.1)
+    else:
+        model.relprop(output_, type)
     new_output = []
     for out in model.getRelevances(outputLayers):
-        new_output.append(out.tolist())
+        if CONVNET == "lrptoolbox" and len(out.shape) == 4:
+            new_output.append(np.swapaxes(out, 1, 3).tolist())
+        else:
+            new_output.append(out.tolist())
     return jsonify(new_output)

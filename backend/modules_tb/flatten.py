@@ -43,7 +43,9 @@ class Flatten(Module):
         Shape change according to C-order.
         '''
         self.inputshape = X.shape # N x H x W x D
-        return np.reshape(X,[self.inputshape[0], numpy.prod(self.inputshape[1:])])
+        self.X = X
+        self.Y = np.reshape(X,[self.inputshape[0], numpy.prod(self.inputshape[1:])])
+        return self.Y
 
     def lrp(self,R, *args, **kwargs):
         '''
