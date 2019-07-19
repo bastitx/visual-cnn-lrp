@@ -50,7 +50,7 @@ class ConvNet(nn.Module):
     def getActivations(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers))
+            layers = range(len(self.layers)+1)
         for l in layers:
             if l == 0:
                 x.append(self.layers[0].X)

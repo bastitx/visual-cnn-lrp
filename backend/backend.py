@@ -37,7 +37,6 @@ def metaData():
         metadata = model.getMetaData(torch.zeros(1,32,32,1))
     else:
         metadata = model.getMetaData(torch.zeros(1,1,28,28))
-    print(len(metadata))
     return jsonify([metadata[i] for i in outputLayers])
 
 @app.route("/activations", methods=['POST'])
