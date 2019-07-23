@@ -4,3 +4,4 @@ from modules.MaxPool2d import MaxPool2d
 from modules.Relu import ReLU
 from modules.Reshape import Reshape
 from modules.Softmax import Softmax
+from modules.Module import Module

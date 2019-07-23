@@ -4,9 +4,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from convnet import ConvNet
 
 SCALE_NP = True
+NETWORK = "LinearNet"
+
+if NETWORK == "LinearNet":
+    from linearnet import LinearNet as MyNet
+else:
+    from convnet import ConvNet as MyNet
+
 
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
@@ -89,7 +95,7 @@ def main():
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
 
-    model = ConvNet().to(device)
+    model = MyNet().to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):

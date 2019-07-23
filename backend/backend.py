@@ -21,7 +21,7 @@ if CONVNET == "lrptoolbox":
     model = ConvNet(model)
 else:
     import torch.nn.functional as F
-    from convnet import ConvNet
+    from linearnet import LinearNet as ConvNet
     model = ConvNet()
     model.load_state_dict(torch.load("mnist_cnn.pt"))
     model.eval()
@@ -29,7 +29,8 @@ else:
 if CONVNET == "lrptoolbox":
     outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
 else:
-    outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
+    #outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
+    outputLayers = [0, 3, 5, 7, 8]
 
 @app.route("/metaData", methods=['GET'])
 def metaData():
