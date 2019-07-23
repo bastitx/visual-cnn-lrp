@@ -72,7 +72,7 @@ function onStopDrawing() {
   //Save alpha value of RGBA image and scale it from [0, 255] to [0, 1]
   var input = new Array(imagesize*imagesize)
   for(i=0; i<input.length; i++) {
-    //input[i] = imageDataScaled[i*4]/255
+    //input[i] = imageDataScaled[i*4]/255 //scale [0,1]
 
     //Scale to [-1,1]
     input[i] = imageDataScaled[i*4]/127.5-1 //TODO make this configurable
@@ -144,7 +144,11 @@ function updateCubes(data) {
     }
   }
   scene.children[0].geometry.colorsNeedUpdate = true;
-	scene.children[0].geometry.verticesNeedUpdate = true;
+  scene.children[0].geometry.verticesNeedUpdate = true;
+  
+  var texture = new THREE.Texture(customBoard.canvas)
+  scene.children[1].material.map = texture
+  scene.children[1].material.map.needsUpdate = true
 }
 
 function drawCubes() {
@@ -166,7 +170,15 @@ function drawCubes() {
   }
   var drawnObject = new THREE.Mesh( geometry, defaultMaterial);
 	drawnObject.name = 'cubes';
-	scene.add( drawnObject );
+  scene.add( drawnObject );
+  
+  var texture = new THREE.Texture(customBoard.canvas)
+  geometry = new THREE.BoxGeometry(nnMetaData[0].outputsize[3]*10, nnMetaData[0].outputsize[2]*10, 1);
+  var imageMaterial = new THREE.MeshBasicMaterial({map: texture, alphaMap:texture})
+  var object = new THREE.Mesh(geometry, imageMaterial)
+  height = -600 + (nnMetaData[0].outputsize[2]*10)/2 + 25
+  object.position.set(-15, height, 3)
+  scene.add(object)
 }
 
 function drawLayer(layer, height, quaternion, scale, geom, geometry) {
