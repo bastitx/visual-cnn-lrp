@@ -8,7 +8,7 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-CONVNET = "old" #TODO: Make this better
+CONVNET = "convnet" #TODO: Make this better
 if CONVNET == "lrptoolbox":
     from convnet_tb import ConvNet
     import pickle
@@ -20,17 +20,24 @@ if CONVNET == "lrptoolbox":
     model.drop_softmax_output_layer()
     model = ConvNet(model)
 else:
+    if CONVNET == "linearnet":
+        from linearnet import LinearNet as MyNet
+        path = "mnist_linear.pt"
+    else:
+        from convnet import ConvNet as MyNet
+        path = "mnist_cnn_PN.pt"
     import torch.nn.functional as F
-    from linearnet import LinearNet as ConvNet
-    model = ConvNet()
-    model.load_state_dict(torch.load("mnist_cnn.pt"))
+    
+    model = MyNet()
+    model.load_state_dict(torch.load(path))
     model.eval()
 
 if CONVNET == "lrptoolbox":
     outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
-else:
-    #outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
+elif CONVNET == "linearnet":
     outputLayers = [0, 3, 5, 7, 8]
+else:
+    outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
 
 @app.route("/metaData", methods=['GET'])
 def metaData():
@@ -76,7 +83,7 @@ def getHeatmap(kind):
     if CONVNET == "lrptoolbox":
         model.lrp(np.array(output_), kind, 0.01)
     else:
-        model.relprop(output_, kind, 0.01)
+        model.relprop(output_, kind, 0.5)
     new_output = []
     for out in model.getRelevances(outputLayers):
         if CONVNET == "lrptoolbox" and len(out.shape) == 4:
