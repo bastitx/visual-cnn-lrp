@@ -27,7 +27,7 @@ function init() {
   });
   //initialize scaled down version of drawing, which is input of neural network
   tinyCtx = $("#tiny")[0].getContext("2d");
-  tinyCtx.scale(0.1,0.1);
+  tinyCtx.scale(imagesize/280,imagesize/280);
 
   // Initialize 3D scene
   // See documentation https://threejs.org/docs
@@ -146,9 +146,20 @@ function updateCubes(data) {
   scene.children[0].geometry.colorsNeedUpdate = true;
   scene.children[0].geometry.verticesNeedUpdate = true;
   
-  var texture = new THREE.Texture(customBoard.canvas)
-  scene.children[1].material.map = texture
-  scene.children[1].material.map.needsUpdate = true
+  var imageData = customBoard.canvas.getContext("2d").getImageData(0,0,280,280)
+  var outputsize = 140
+  var img_u8_big = new jsfeat.matrix_t(280, 280, jsfeat.U8C1_t);
+  var img_u8 = new jsfeat.matrix_t(outputsize, outputsize, jsfeat.U8C1_t);
+  jsfeat.imgproc.grayscale(imageData.data, 280, 280, img_u8_big)
+  jsfeat.imgproc.resample(img_u8_big, img_u8, outputsize, outputsize)
+  jsfeat.imgproc.gaussian_blur(img_u8, img_u8, 2, 0)
+  jsfeat.imgproc.canny(img_u8, img_u8, 0, 0)
+
+  var img_c4 = Array.from(img_u8.data).flatMap((x) => [x,x,x,255])
+  var img_final = new ImageData(new Uint8ClampedArray(img_c4), outputsize, outputsize)
+  var texture = new THREE.Texture(img_final)
+  scene.children[1].material.alphaMap = texture
+  scene.children[1].material.alphaMap.needsUpdate = true
 }
 
 function drawCubes() {
@@ -174,10 +185,10 @@ function drawCubes() {
   
   var texture = new THREE.Texture(customBoard.canvas)
   geometry = new THREE.BoxGeometry(nnMetaData[0].outputsize[3]*10, nnMetaData[0].outputsize[2]*10, 1);
-  var imageMaterial = new THREE.MeshBasicMaterial({map: texture, alphaMap:texture})
+  var imageMaterial = new THREE.MeshBasicMaterial({map: texture, alphaMap:texture, transparent: true})
   var object = new THREE.Mesh(geometry, imageMaterial)
   height = -600 + (nnMetaData[0].outputsize[2]*10)/2 + 25
-  object.position.set(-15, height, 3)
+  object.position.set(-15, height, 10)
   scene.add(object)
 }
 
