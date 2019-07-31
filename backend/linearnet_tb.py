@@ -21,10 +21,10 @@ class LinearNet(Module):
             self.layers.modules.insert(0, Flatten())
     
     def forward(self, X, lrp_aware=False):
-        return self.layers.forward(X)
+        return self.layers.forward(np.array(X))
 
-    def lrp(self, R, lrp_var=None, param=None):
-        return self.layers.lrp(R, lrp_var, param)
+    def relprop(self, R, lrp_var=None, param=None):
+        return self.layers.lrp(np.array(R), lrp_var, param)
     
     def getActivations(self, layers=None):
         x = []

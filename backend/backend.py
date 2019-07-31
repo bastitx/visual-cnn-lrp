@@ -8,7 +8,7 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-CONVNET = "tb_linear" 
+CONVNET = "conv" 
 if CONVNET.startswith("tb"):
     import pickle
     import modules_tb
@@ -59,17 +59,12 @@ def getActivations():
     input_data = data['data']
     input = torch.Tensor(input_data)
     if CONVNET.startswith("tb"):
-        if CONVNET == "tb_conv":
-            input = input.permute(0,3,2,1)
-        model.forward(np.array(input))
+        model.forward(input)
     else:
         model(input)
     new_output = []
     for out in model.getActivations(outputLayers):
-        if CONVNET.startswith("tb") and len(out.shape) == 4:
-            new_output.append(np.swapaxes(out, 1, 3).tolist())
-        else:
-            new_output.append(out.tolist())
+        new_output.append(out.tolist())
     return jsonify(new_output)
 
 @app.route("/lrp/<kind>", methods=['POST'])
@@ -79,9 +74,7 @@ def getHeatmap(kind):
     heatmap_selection = data['heatmap_selection']
     input = torch.Tensor(input_data)
     if CONVNET.startswith("tb"):
-        if CONVNET == "tb_conv":
-            input = input.permute(0,3,2,1)
-        output = model.forward(np.array(input))
+        output = model.forward(input)
     else:
         output = model(input)
     output_ = torch.zeros(10)
@@ -90,14 +83,8 @@ def getHeatmap(kind):
     else:
         output_[output.argmax()] = 1
     output_ = output_[None,:]
-    if CONVNET.startswith("tb"):
-        model.lrp(np.array(output_), kind, 0.01)
-    else:
-        model.relprop(output_, kind, 0.01)
+    model.relprop(output_, kind, 0.01)
     new_output = []
     for out in model.getRelevances(outputLayers):
-        if CONVNET.startswith("tb") and len(out.shape) == 4:
-            new_output.append(np.swapaxes(out, 1, 3).tolist())
-        else:
-            new_output.append(out.tolist())
+        new_output.append(out.tolist())
     return jsonify(new_output)

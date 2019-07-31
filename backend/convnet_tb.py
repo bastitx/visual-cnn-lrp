@@ -24,10 +24,10 @@ class ConvNet(Module):
             self.layers = layers
     
     def forward(self, X, lrp_aware=False):
-        return self.layers.forward(X)
+        return self.layers.forward(np.array(X.permute(0,2,3,1)))
 
-    def lrp(self, R, lrp_var=None, param=None):
-        return self.layers.lrp(R, lrp_var, param)
+    def relprop(self, R, lrp_var=None, param=None):
+        return self.layers.lrp(np.array(R), lrp_var, param)
     
     def getActivations(self, layers=None):
         x = []
@@ -35,9 +35,13 @@ class ConvNet(Module):
             layers = range(len(self.layers.modules)+1)
         for l in layers:
             if l == 0:
-                x.append(self.layers.modules[0].X)
+                out = self.layers.modules[0].X
             else:
-                x.append(self.layers.modules[l-1].Y)
+                out = self.layers.modules[l-1].Y
+            if len(out.shape) == 4:
+                x.append(np.transpose(out, (0, 3, 1, 2)))
+            else:
+                x.append(out)
         return x
 
     def getRelevances(self, layers=None):
@@ -45,7 +49,11 @@ class ConvNet(Module):
         if layers == None:
             layers = range(len(self.layers))
         for l in layers:
-                x.append(self.layers.relevances[l])
+            out = self.layers.relevances[l]
+            if len(out.shape) == 4:
+                x.append(np.transpose(out, (0, 3, 1, 2)))
+            else:
+                x.append(out)
         return x
 
     def getMetaData(self, X):
