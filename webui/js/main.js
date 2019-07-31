@@ -127,14 +127,10 @@ function onWindowResize( e ) {
 
 function updateCubes(data) {
   data_ = data.flat(4)
+  data_rel = data[0].flat(3)
   color_scale = chroma.scale('RdBu')
-  distinct_data = [...new Set(data_)]
-  distinct_data_n = distinct_data.filter((x) => x <= 0)
-  distinct_data_p = distinct_data.filter((x) => x >= 0)
-  //quantiles = math.quantileSeq([...new Set(data_)], color_scale.colors().length)
-  quantiles_n = math.quantileSeq(distinct_data_n, 6).slice(0, 5)
-  quantiles_p = math.quantileSeq(distinct_data_p, 6).slice(1, 6)
-  color_scale_ = color_scale.domain([quantiles_n, 0, quantiles_p].flat())
+  d = math.max(math.abs(data_rel))
+  color_scale_ = color_scale.domain([-d, d])
   for(i=0; i<data_.length; i++) {
     var color = new THREE.Color(color_scale_(data_[i]).num())
     for(j=0; j<12; j++) {
