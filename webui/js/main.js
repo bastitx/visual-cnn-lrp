@@ -3,7 +3,9 @@ var customBoard, tinyCtx
 var renderer, camera, scene
 var nnMetaData, nnOutput
 var heatmap_hide = false
-imagesize = 28 //TODO make this configurable
+var selectedMethod = "Epsilon"
+var selectedModel = "Linear"
+imagesize = 28
 SERVER="http://127.0.0.1:5000" // where backend API is located
 
 
@@ -42,27 +44,34 @@ function init() {
 
   var controls = new THREE.OrbitControls( camera, renderer.domElement );
   window.addEventListener( 'resize', onWindowResize, false );
-
-  // Initialize the "cubes"(in 2d just squares)
-  // These are the building blocks of the visualization of the neural network
-  // Each cube represents a neuron
-  // Metadata of neural network is pulled from backend
-  $.get(SERVER+"/metaData").done(function(result) {
-      nnMetaData = result
-      drawCubes()
-      customBoard.ev.bind('board:stopDrawing', onStopDrawing);
-  });
   // Initialize the heatmap hide button, which switches between showing
   // activations and heatmap
   $('#heatmap_hide_button').click(function() {
 					heatmap_hide = !heatmap_hide;
-          onStopDrawing()
-	});
+          updateNetwork()
+  });
+  
+  setModel(selectedModel)
+}
+
+function setModel(model) {
+  // Initialize the "cubes"(in 2d just squares)
+  // These are the building blocks of the visualization of the neural network
+  // Each cube represents a neuron
+  // Metadata of neural network is pulled from backend
+  selectedModel = model
+  customBoard.ev.unbind('board:stopDrawing', updateNetwork)
+  $.get(SERVER+"/metaData/"+selectedModel).done(function(result) {
+    nnMetaData = result
+    drawCubes()
+    customBoard.ev.bind('board:stopDrawing', updateNetwork);
+    $('#modelselection')[0].textContent = model
+  });
 }
 
 // Function that's called right after someone has just stopped drawing in the
 // DrawingBoard. This will send the drawn image to the neural network
-function onStopDrawing() {
+function updateNetwork() {
   // Get the content of the image, scale it down, and store it in tinyCtx
   var imageData = customBoard.canvas.getContext("2d").getImageData(0,0,imagesize*10,imagesize*10)
   var newCanvas = $("<canvas>").attr("width", imageData.width).attr("height", imageData.height)[0];
@@ -81,12 +90,14 @@ function onStopDrawing() {
   //Parse heatmap selector, which can override the
   heatmap_selector = parseInt($('#ans3')[0].value)
   heatmap_selector = 0 <= heatmap_selector < 10 ? heatmap_selector : -1
+  lrp_parameter = parseFloat($('#lrpparam')[0].value)
   input_data = {
     data: input,
-    heatmap_selection: heatmap_selector
+    heatmap_selection: heatmap_selector,
+    parameter: lrp_parameter
   }
   url = SERVER+'/'
-  url += heatmap_hide ? 'activations' : 'lrp/epsilon'
+  url += heatmap_hide ? 'activations/'+selectedModel : 'lrp/'+selectedModel+'/'+selectedMethod
   $.ajax({
     type: 'post',
     url: url,
@@ -159,6 +170,8 @@ function updateCubes(data) {
 }
 
 function drawCubes() {
+  for(i=scene.children.length-1; i>=0; i--)
+    scene.remove(scene.children[i]);
   var height = -600
   var geometry = new THREE.Geometry();
   //var defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, transparent: true} );
@@ -216,6 +229,12 @@ function animate() {
 
 function render() {
   renderer.render(scene, camera);
+}
+
+function changeMethod(method) {
+  selectedMethod = method;
+  updateNetwork()
+  $('#lrpselection')[0].textContent = method
 }
 
 init();

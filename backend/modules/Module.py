@@ -12,6 +12,7 @@ class Module(nn.Module):
         for layer in self.layers:
             layer.register_forward_hook(forward_hook)
         self.relevances = []
+        self.outputLayers = range(len(self.layers)+1)
 
     def forward(self, x):
         y = F.log_softmax(self.layers(x), dim=1)
@@ -34,7 +35,7 @@ class Module(nn.Module):
     def getActivations(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers)+1)
+            layers = self.outputLayers
         for l in layers:
             if l == 0:
                 x.append(self.layers[0].X)
@@ -45,22 +46,17 @@ class Module(nn.Module):
     def getRelevances(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers))
+            layers = self.outputLayers
         for l in layers:
             x.append(self.relevances[l])
         return x
 
-    def getMetaData(self, X):
+    def getMetaData(self, X, layers=None):
         metadata = []
-        metadata.append({ 'type': 'input2d', 'outputsize': X.size() })
-        for l in range(len(self.layers)):
-            obj = {}
-            X = self.layers[l].forward(X)
-            obj['type'] = self.layers[l].__class__.__name__
-            obj['outputsize'] = X.size()
-            if obj['type'] == "Conv2d":
-                obj['kernelsize'] = self.layers[l].kernel_size
-            metadata.append(obj)
+        self(X)
+        activations = self.getActivations(layers)
+        for A in activations:
+            metadata.append({ 'outputsize': A.size() })
         return metadata
 
 def forward_hook(self, input, output):

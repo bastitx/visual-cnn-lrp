@@ -21,3 +21,4 @@ class ConvNet(lrp_module.Module):
             lrp_module.ReLU(),
             lrp_module.Linear(100, 10)
         ])
+        self.outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]

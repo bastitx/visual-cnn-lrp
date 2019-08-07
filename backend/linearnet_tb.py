@@ -19,6 +19,7 @@ class LinearNet(Module):
         else:
             self.layers = layers
             self.layers.modules.insert(0, Flatten())
+        self.outputLayers = [0, 3, 5, 7, 8]
     
     def forward(self, X, lrp_aware=False):
         return self.layers.forward(np.array(X))
@@ -29,7 +30,7 @@ class LinearNet(Module):
     def getActivations(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers.modules)+1)
+            layers = self.outputLayers
         for l in layers:
             if l == 0:
                 x.append(self.layers.modules[0].X)
@@ -40,20 +41,15 @@ class LinearNet(Module):
     def getRelevances(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers))
+            layers = self.outputLayers
         for l in layers:
                 x.append(self.layers.relevances[l])
         return x
 
-    def getMetaData(self, X):
+    def getMetaData(self, X, layers=None):
         metadata = []
-        metadata.append({ 'type': 'input2d', 'outputsize': X.shape })
-        for layer in self.layers.modules:
-            obj = {}
-            X = layer.forward(X)
-            obj['type'] = layer.__class__.__name__
-            obj['outputsize'] = X.shape
-            if obj['type'] == "Convolution":
-                obj['kernelsize'] = layer.fh
-            metadata.append(obj)
+        self.forward(X)
+        activations = self.getActivations(layers)
+        for A in activations:
+            metadata.append({ 'outputsize': A.shape })
         return metadata

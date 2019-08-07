@@ -1,90 +1,96 @@
-from flask import Flask, request, jsonify
+from flask import Flask, abort, request, jsonify
 from flask_cors import CORS
 import sys
 import torch
 import numpy as np
 
+CONVNET = "lrptoolbox" 
 
 app = Flask(__name__)
 CORS(app)
 
-CONVNET = "conv" 
-if CONVNET.startswith("tb"):
+models = {}
+if CONVNET == "lrptoolbox":
     import pickle
     import modules_tb
     sys.modules['modules'] = modules_tb
-    if CONVNET.endswith("linear"):
-        from linearnet_tb import LinearNet as MyNet
-        f = open('long-tanh.nn', 'rb')
-    else:
-        from convnet_tb import ConvNet as MyNet
-        f = open("LeNet-5.nn", 'rb')
-    model = pickle.load(f, encoding='latin1')
-    f.close()
-    model.drop_softmax_output_layer()
-    model = MyNet(model)
+    from linearnet_tb import LinearNet
+    from convnet_tb import ConvNet
+    with open('long-tanh.nn', 'rb') as f:
+        model = pickle.load(f, encoding='latin1')
+        model.drop_softmax_output_layer()
+        models['linear'] = LinearNet(model)
+    with open("LeNet-5.nn", 'rb') as f:
+        model = pickle.load(f, encoding='latin1')
+        models['conv'] = ConvNet(model)
 else:
-    if CONVNET.endswith("linear"):
-        from linearnet import LinearNet as MyNet
-        path = "mnist_linear.pt"
-    else: # conv
-        from convnet import ConvNet as MyNet
-        path = "mnist_cnn_PN.pt"
+    from linearnet import LinearNet
+    from convnet import ConvNet
     import torch.nn.functional as F
     
-    model = MyNet()
-    model.load_state_dict(torch.load(path))
-    model.eval()
+    models['linear'] = LinearNet()
+    models['linear'].load_state_dict(torch.load("mnist_linear.pt"))
+    models['linear'].eval()
 
-if CONVNET == "tb_conv":
-    outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
-elif CONVNET == "linear": 
-    outputLayers = [0, 3, 5, 7, 8]
-elif CONVNET == "tb_linear":
-    outputLayers = [0, 3, 5, 7, 8]
-else: # conv
-    outputLayers = [0, 2, 3, 5, 6, 9, 11, 12]
+    models['conv'] = ConvNet()
+    models['conv'].load_state_dict(torch.load("mnist_cnn_PN.pt"))
+    models['conv'].eval()
 
-@app.route("/metaData", methods=['GET'])
-def metaData():
-    if CONVNET == "tb_conv":
-        metadata = model.getMetaData(torch.zeros(1,32,32,1))
-    else:
-        metadata = model.getMetaData(torch.zeros(1,1,28,28))
-    return jsonify([metadata[i] for i in outputLayers])
+def checkNetwork(network):
+    if network not in ['linear', 'conv']:
+        abort(400) # Bad Request
 
-@app.route("/activations", methods=['POST'])
-def getActivations():
+@app.route("/metaData/<network>", methods=['GET'])
+def metaData(network):
+    network = network.lower()
+    checkNetwork(network)
+    metadata = models[network].getMetaData(torch.zeros(1,1,28,28))
+    return jsonify(metadata)
+
+@app.route("/activations/<network>", methods=['POST'])
+def getActivations(network):
+    network = network.lower()
+    checkNetwork(network)
     data = request.json
     input_data = data['data']
     input = torch.Tensor(input_data)
-    if CONVNET.startswith("tb"):
-        model.forward(input)
+    if CONVNET == "lrptoolbox":
+        models[network].forward(input)
     else:
-        model(input)
+        models[network](input)
     new_output = []
-    for out in model.getActivations(outputLayers):
+    for out in models[network].getActivations():
         new_output.append(out.tolist())
     return jsonify(new_output)
 
-@app.route("/lrp/<kind>", methods=['POST'])
-def getHeatmap(kind):
+@app.route("/lrp/<network>/<method>", methods=['POST'])
+def getHeatmap(network, method):
+    network = network.lower()
+    checkNetwork(network)
+    method = method.lower()
+    if method not in ['simple', 'epsilon', 'alphabeta']:
+        abort(400)
     data = request.json
     input_data = data['data']
     heatmap_selection = data['heatmap_selection']
+    parameter = data['parameter']
+    try:
+        parameter = float(parameter)
+    except:
+        parameter = 0.01
     input = torch.Tensor(input_data)
-    if CONVNET.startswith("tb"):
-        output = model.forward(input)
+    if CONVNET == "lrptoolbox":
+        output = models[network].forward(input)
     else:
-        output = model(input)
+        output = models[network](input)
     output_ = torch.zeros(10)
     if heatmap_selection != None and -1 < heatmap_selection < 10:
         output_[heatmap_selection] = 1
     else:
         output_[output.argmax()] = 1
     output_ = output_[None,:]
-    model.relprop(output_, kind, 0.01)
+    models[network].relprop(output_, method, parameter)
     new_output = []
-    for out in model.getRelevances(outputLayers):
+    for out in models[network].getRelevances():
         new_output.append(out.tolist())
     return jsonify(new_output)

@@ -29,12 +29,12 @@
 				<div class="board" id="custom-board"></div>
 				<div class="drawingOutput">
 					<div class="row">
-						<div class="row">
 							<div class="info">Downsampled drawing:</div>
 							<div class="tinyBoard">
 								<canvas id="tiny"></canvas>
 							</div>
 						</div>
+					<div class="row">
 						<div class="info cell">First guess:</div>
 						<div id="ans1" class="ans cell"></div>
 					</div>
@@ -43,25 +43,37 @@
 						<div id="ans2" class="ans cell"></div>
 					</div>
 					<div class="row">
-						<div class="info cell">Relevance:</div>
-						<input id="ans3" class="ans cell"></input>
+						<div class="inputinfo cell">Relevance Override:</div>
+						<input id="ans3" class="input cell"></input>
 					</div>
-				</div>
-			</div>
-			<div id="filterInterface">
-				<div class="instructions">Layer visibility</div>
-				<div class="settings">
 					<div class="row">
-						<div class="question">
-							Heatmap
+						<div class="inputinfo">LRP Parameter:</div>
+						<input id="lrpparam" class="input" value="0.01"></input>
+					</div>
+				</div>
+				<div class="settings">
+						<div class="row">
+							<div class="dropdown">
+								<button id="lrpselection" class="dropbtn">Epsilon</button>
+								<div class="dropdown-content">
+									<div class="dropdown-item" onclick="changeMethod('Simple')">Simple</div>
+									<div class="dropdown-item" onclick="changeMethod('Epsilon')">Epsilon</div>
+									<div class="dropdown-item" onclick="changeMethod('AlphaBeta')">AlphaBeta</div>
+								</div>
+							</div>
+							<div class="dropdown">
+								<button id="modelselection" class="dropbtn">Linear</button>
+								<div class="dropdown-content">
+									<div class="dropdown-item" onclick="setModel('Conv')">Conv</div>
+									<div class="dropdown-item" onclick="setModel('Linear')">Linear</div>
+								</div>
+							</div>
 						</div>
-						<div class="switch">
+						<div class="row">
 							<input id="heatmap_hide_button" class="cmn-toggle cmn-toggle-yes-no" type="checkbox">
-							<label for="heatmap_hide_button" data-on="Hide" data-off="Show"></label>
+							<label for="heatmap_hide_button" data-on="Activations" data-off="Heatmap"></label>
 						</div>
 					</div>
-
-				</div>
 			</div>
 		</div>
 		<script src="js/main.js"></script>

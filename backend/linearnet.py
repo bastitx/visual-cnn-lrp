@@ -17,3 +17,4 @@ class LinearNet(lrp_module.Module):
             lrp_module.ReLU(),
             lrp_module.Linear(1296, 10)
         ])
+        self.outputLayers = [0, 3, 5, 7, 8]

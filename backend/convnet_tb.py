@@ -22,9 +22,10 @@ class ConvNet(Module):
             ])
         else:
             self.layers = layers
+        self.outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
     
     def forward(self, X, lrp_aware=False):
-        return self.layers.forward(np.array(X.permute(0,2,3,1)))
+        return self.layers.forward(np.pad(X.permute(0,2,3,1), ((0,0), (2,2), (2,2), (0,0)), 'constant'))
 
     def relprop(self, R, lrp_var=None, param=None):
         return self.layers.lrp(np.array(R), lrp_var, param)
@@ -32,7 +33,7 @@ class ConvNet(Module):
     def getActivations(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers.modules)+1)
+            layers = self.outputLayers
         for l in layers:
             if l == 0:
                 out = self.layers.modules[0].X
@@ -47,7 +48,7 @@ class ConvNet(Module):
     def getRelevances(self, layers=None):
         x = []
         if layers == None:
-            layers = range(len(self.layers))
+            layers = self.outputLayers
         for l in layers:
             out = self.layers.relevances[l]
             if len(out.shape) == 4:
@@ -56,18 +57,10 @@ class ConvNet(Module):
                 x.append(out)
         return x
 
-    def getMetaData(self, X):
+    def getMetaData(self, X, layers=None):
         metadata = []
-        metadata.append({ 'type': 'input2d', 'outputsize': [X.shape[0], X.shape[3], X.shape[1], X.shape[2]] })
-        for layer in self.layers.modules:
-            obj = {}
-            X = layer.forward(X)
-            obj['type'] = layer.__class__.__name__
-            if len(X.shape) == 4:
-                obj['outputsize'] = [X.shape[0], X.shape[3], X.shape[1], X.shape[2]]
-            else:
-                obj['outputsize'] = X.shape
-            if obj['type'] == "Convolution":
-                obj['kernelsize'] = layer.fh
-            metadata.append(obj)
+        self.forward(X)
+        activations = self.getActivations(layers)
+        for A in activations:
+            metadata.append({'outputsize': A.shape })
         return metadata
