@@ -189,7 +189,7 @@ function drawCubes() {
   scene.add( drawnObject );
   
   var texture = new THREE.Texture(customBoard.canvas)
-  geometry = new THREE.BoxGeometry(nnMetaData[0].outputsize[3]*10, nnMetaData[0].outputsize[2]*10, 1);
+  geometry = new THREE.BoxGeometry(280, 280, 1);
   var imageMaterial = new THREE.MeshBasicMaterial({map: texture, alphaMap:texture, transparent: true})
   var object = new THREE.Mesh(geometry, imageMaterial)
   height = -600 + (nnMetaData[0].outputsize[2]*10)/2 + 25
