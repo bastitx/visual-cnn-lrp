@@ -10,4 +10,4 @@ WORKDIR /app
 ENV FLASK_APP backend.py
 
 ENTRYPOINT [ "flask" ]
-CMD [ "run" ]
+CMD [ "run", "--host", "0.0.0.0" ]
