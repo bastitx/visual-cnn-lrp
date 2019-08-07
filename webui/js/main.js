@@ -65,6 +65,7 @@ function setModel(model) {
     nnMetaData = result
     drawCubes()
     customBoard.ev.bind('board:stopDrawing', updateNetwork);
+    updateNetwork()
     $('#modelselection')[0].textContent = model
   });
 }
@@ -112,6 +113,7 @@ function updateNetwork() {
     },
     error: function( jqXhr, textStatus, errorThrown ){
       console.log( errorThrown );
+      console.log(nnOutput)
     }
   })
 }
@@ -158,6 +160,7 @@ function updateCubes(data) {
   var img_c4 = Array.from(img_u8.data).flatMap((x) => [x,x,x,255])
   var img_final = new ImageData(new Uint8ClampedArray(img_c4), outputsize, outputsize)
   var texture = new THREE.Texture(img_final)
+  texture.minFilter = THREE.LinearFilter
   scene.children[1].material.alphaMap = texture
   scene.children[1].material.alphaMap.needsUpdate = true
 }
