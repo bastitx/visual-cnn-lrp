@@ -105,22 +105,15 @@ function updateNetwork() {
     data: JSON.stringify(input_data),
     success: function(data) {
       nnOutput = data
-      updateCubes(data)
-      var output = JSON.parse(JSON.stringify(data[data.length-1][0].flat(2)))
-      ans1 = argMax(output)
-      output[ans1] = -9999999999
-      ans2 = argMax(output)
-      document.getElementById("ans1").innerHTML = ans1
-      document.getElementById("ans2").innerHTML = ans2
+      updateCubes(data['data'])
+      sortedargs = data['sortedargs'].reverse()
+      document.getElementById("ans1").innerHTML = sortedargs[0]
+      document.getElementById("ans2").innerHTML = sortedargs[1]
     },
     error: function( jqXhr, textStatus, errorThrown ){
       console.log( errorThrown );
     }
   })
-}
-
-function argMax(array) {
-  return array.map((x, i) => [x, i]).reduce((r, a) => (a[0] > r[0] ? a : r))[1];
 }
 
 function onWindowResize( e ) {

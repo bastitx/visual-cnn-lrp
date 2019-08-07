@@ -22,10 +22,10 @@ class ConvNet(Module):
             ])
         else:
             self.layers = layers
-        self.outputLayers = [0, 2, 3, 5, 6, 8, 9, 10]
+        self.outputLayers = [0, 2, 3, 5, 6, 8, 9, 11]
     
     def forward(self, X, lrp_aware=False):
-        return self.layers.forward(np.pad(X.permute(0,2,3,1), ((0,0), (2,2), (2,2), (0,0)), 'constant'))
+        return self.layers.forward(np.pad(X.permute(0,2,3,1), ((0,0), (2,2), (2,2), (0,0)), 'constant', constant_values=-1))
 
     def relprop(self, R, lrp_var=None, param=None):
         return self.layers.lrp(np.array(R), lrp_var, param)

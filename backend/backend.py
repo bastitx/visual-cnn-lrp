@@ -55,12 +55,16 @@ def getActivations(network):
     input_data = data['data']
     input = torch.Tensor(input_data)
     if CONVNET == "lrptoolbox":
-        models[network].forward(input)
+        output = models[network].forward(input)
+        sortedargs = np.argsort(output)
     else:
-        models[network](input)
-    new_output = []
+        output = models[network](input)
+        sortedargs = torch.argsort(output)
+    new_output = {}
+    new_output['data'] = []
+    new_output['sortedargs'] = sortedargs[0].tolist()
     for out in models[network].getActivations():
-        new_output.append(out.tolist())
+        new_output['data'].append(out.tolist())
     return jsonify(new_output)
 
 @app.route("/lrp/<network>/<method>", methods=['POST'])
@@ -81,8 +85,10 @@ def getHeatmap(network, method):
     input = torch.Tensor(input_data)
     if CONVNET == "lrptoolbox":
         output = models[network].forward(input)
+        sortedargs = np.argsort(output)
     else:
         output = models[network](input)
+        sortedargs = torch.argsort(output)
     output_ = torch.zeros(10)
     if heatmap_selection != None and -1 < heatmap_selection < 10:
         output_[heatmap_selection] = 1
@@ -90,7 +96,9 @@ def getHeatmap(network, method):
         output_[output.argmax()] = 1
     output_ = output_[None,:]
     models[network].relprop(output_, method, parameter)
-    new_output = []
+    new_output = {}
+    new_output['data'] = []
+    new_output['sortedargs'] = sortedargs[0].tolist()
     for out in models[network].getRelevances():
-        new_output.append(out.tolist())
+        new_output['data'].append(out.tolist())
     return jsonify(new_output)
