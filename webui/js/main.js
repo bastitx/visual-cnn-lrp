@@ -133,11 +133,17 @@ function onWindowResize( e ) {
 
 function updateCubes(data) {
   data_ = data.flat(4)
-  data_rel = data[0].flat(3)
+  layer_indices = [0]
+  for(i=0; i<nnMetaData.length; i++) {
+    layer_indices = layer_indices.concat(layer_indices[i] + nnMetaData[i].outputsize.reduce((x, y) => x*y))
+  }
   color_scale = chroma.scale('RdBu')
-  d = math.max(math.abs(data_rel))
-  color_scale_ = color_scale.domain([-d, d])
   for(i=0; i<data_.length; i++) {
+    if(layer_indices.indexOf(i) >= 0) {
+      layer_values = data_.slice(i, layer_indices[layer_indices.indexOf(i)+1])
+      d = math.max(math.abs(layer_values))
+      color_scale_ = color_scale.domain([-d, d])
+    }
     var color = new THREE.Color(color_scale_(data_[i]).num())
     for(j=0; j<12; j++) {
       for(k=0; k<3; k++) {
