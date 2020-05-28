@@ -1,5 +1,5 @@
 # Visual CNN LRP
-Add layer-wise relevance propagation method to http://scs.ryerson.ca/~aharley/vis/
+Add REST interface and layer-wise relevance propagation method to http://scs.ryerson.ca/~aharley/vis/
 
 ## Installation
 For the backend install Python 3 and Flask and then from the backend directory start the Flask server by entering `FLASK_APP=backend.py flask run`. Currently the frontend expects the backend to be on port 5000.
